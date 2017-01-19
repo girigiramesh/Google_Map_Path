@@ -1,6 +1,8 @@
 package com.google_map_path;
 
 import android.app.ProgressDialog;
+import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.os.Bundle;
@@ -41,19 +43,24 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private List<Polyline> polylinePaths = new ArrayList<>();
     private ProgressDialog progressDialog;
 
+    public static void start(Context context, double latitude, double longitude) {
+        Intent starter = new Intent(context, MapsActivity.class);
+        starter.putExtra(Constant.extra.LATITUDE, latitude);
+        starter.putExtra(Constant.extra.LONGITUDE, longitude);
+        context.startActivity(starter);
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
-        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
-                .findFragmentById(R.id.map);
+        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
         btnFindPath = (Button) findViewById(R.id.btnFindPath);
         etOrigin = (EditText) findViewById(R.id.etOrigin);
         etDestination = (EditText) findViewById(R.id.etDestination);
-
         btnFindPath.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -73,7 +80,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             Toast.makeText(this, "Please enter destination address!", Toast.LENGTH_SHORT).show();
             return;
         }
-
         try {
             new DirectionFinder(this, origin, destination).execute();
         } catch (UnsupportedEncodingException e) {
@@ -84,12 +90,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
-        LatLng india = new LatLng(17.441498, 78.391445);
+        LatLng india = new LatLng(getIntent().getDoubleExtra(Constant.extra.LATITUDE, 0), getIntent().getDoubleExtra(Constant.extra.LONGITUDE, 0));
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(india, 18));
         originMarkers.add(mMap.addMarker(new MarkerOptions()
                 .title("Current Location Path")
                 .position(india)));
-
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             // TODO: Consider calling
             //    ActivityCompat#requestPermissions
@@ -106,21 +111,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     @Override
     public void onDirectionFinderStart() {
-        progressDialog = ProgressDialog.show(this, "Please wait.",
-                "Finding direction..!", true);
-
+        progressDialog = ProgressDialog.show(this, "Please wait.", "Finding direction..!", true);
         if (originMarkers != null) {
             for (Marker marker : originMarkers) {
                 marker.remove();
             }
         }
-
         if (destinationMarkers != null) {
             for (Marker marker : destinationMarkers) {
                 marker.remove();
             }
         }
-
         if (polylinePaths != null) {
             for (Polyline polyline : polylinePaths) {
                 polyline.remove();
@@ -148,15 +149,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     .icon(BitmapDescriptorFactory.fromResource(R.drawable.end_green))
                     .title(route.endAddress)
                     .position(route.endLocation)));
-
             PolylineOptions polylineOptions = new PolylineOptions().
                     geodesic(true).
                     color(Color.BLUE).
                     width(10);
-
             for (int i = 0; i < route.points.size(); i++)
                 polylineOptions.add(route.points.get(i));
-
             polylinePaths.add(mMap.addPolyline(polylineOptions));
         }
     }
